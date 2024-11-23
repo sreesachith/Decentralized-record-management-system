@@ -1,6 +1,7 @@
 const ipfs = require('../config/ipfs'); 
 const File = require('../models/File');
 const { Readable } = require('stream');
+const { createAsset } = require('../server.js');
 
 exports.uploadFile = async (req, res) => {
     try {
@@ -26,12 +27,23 @@ exports.uploadFile = async (req, res) => {
 
         await newFile.save(); // Save the file document to MongoDB
 
+        const assetID = `asset-${Date.now()}`; // Generate a unique asset ID
+        const size = file.size.toString(); // Use file size as size
+        const owner = username; // Use the username as the owner
+        const name = file.originalname.toString();
+        const content = 'hello'; // Example value, modify as needed
+
+        // Call createAsset with necessary parameters
+        await createAsset(assetID , size , owner , name , content );
+        console.log('Asset created on blockchain successfully!');
+
         res.status(200).json({ 
             cid: result.path,
             name: file.originalname,
             size: file.size,
             username: username // Return the username in the response
         });
+
     } catch (error) {
         console.error('File upload error:', error);
         res.status(500).json({ error: 'File upload failed', details: error.message });
