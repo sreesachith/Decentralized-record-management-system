@@ -90,13 +90,24 @@ const channelName = 'mychannel'; // Replace with your channel name
 const chaincodeName = 'basic'; // Replace with your chaincode name
 const mspId = 'rrMSP'; // Replace with your organization's MSP ID
 
-// Paths to crypto materials
-const cryptoPath = path.resolve(__dirname, 'path-to-crypto-materials'); // Update with your crypto path
-const keyDirectoryPath = path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'keystore');
-const certDirectoryPath = path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'signcerts');
-const tlsCertPath = path.resolve(cryptoPath, 'peers', 'peer0.rr.isfcr.com', 'tls', 'ca.crt');
-const peerEndpoint = 'localhost:7051'; // Replace with your peer endpoint
-const peerHostAlias = 'peer0.rr.isfcr.com'; // Replace with your peer host alias
+
+
+const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'HLF2.5-LOCAL ', 'organizations', 'peerOrganizations', 'rr.isfcr.com'));
+
+// Path to user private key directory.
+const keyDirectoryPath = envOrDefault('KEY_DIRECTORY_PATH', path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'keystore'));
+
+// Path to user certificate directory.
+const certDirectoryPath = envOrDefault('CERT_DIRECTORY_PATH', path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'signcerts'));
+
+// Path to peer tls certificate.
+const tlsCertPath = envOrDefault('TLS_CERT_PATH', path.resolve(cryptoPath, 'peers', 'peer0.rr.isfcr.com', 'tls', 'ca.crt'));
+
+// Gateway peer endpoint.
+const peerEndpoint = envOrDefault('PEER_ENDPOINT', 'localhost:7051');
+
+// Gateway peer SSL host name override.
+const peerHostAlias = envOrDefault('PEER_HOST_ALIAS', 'peer0.rr.isfcr.com');
 
 const utf8Decoder = new TextDecoder();
 
