@@ -8,7 +8,6 @@ const User = require('./models/User'); // Ensure the path is correct
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-let gateway;
 //HLF
 const grpc = require('@grpc/grpc-js');
 const { connect, signers } = require('@hyperledger/fabric-gateway');
@@ -22,7 +21,7 @@ const chaincodeName = envOrDefault('CHAINCODE_NAME', 'basic');
 const mspId = envOrDefault('MSP_ID', 'rrMSP');
 
 // Path to crypto materials.
-const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'HLF2.5-LOCAL', 'organizations', 'peerOrganizations', 'rr.isfcr.com'));
+const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'Chain-Prototype', 'organizations', 'peerOrganizations', 'rr.isfcr.com'));
 
 // Path to user private key directory.
 const keyDirectoryPath = envOrDefault('KEY_DIRECTORY_PATH', path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'keystore'));
@@ -80,13 +79,15 @@ async function seedAdmin() {
 }
 
 seedAdmin();
+
+let gateway, contract;
 async function main() {
     await displayInputParameters();
 
     // The gRPC client connection should be shared by all Gateway connections to this endpoint.
     const client = await newGrpcConnection();
 
-    const gateway = connect({
+    gateway = connect({
         client,
         identity: await newIdentity(),
         signer: await newSigner(),
@@ -99,9 +100,10 @@ async function main() {
 
     try {
         const network = gateway.getNetwork(channelName);
-        const contract = network.getContract(chaincodeName);
+        contract = network.getContract(chaincodeName);
 
         //await initLedger(contract);
+        //createAsset("abcd" , "5", "abc", "abc" , "abc");
         console.log('*** Ledger initialization successful.');
     } catch (error) {
         // Handle errors without closing the gateway
@@ -159,17 +161,13 @@ async function initLedger(contract) {
     console.log('*** Transaction committed successfully');
 }
 
-
+async function create(assetID , size , owner , name , content) {
+    await createAsset(assetID , size , owner , name , content);
+}
 //CreateAsset(ctx contractapi.TransactionContextInterface, assetID string, size int, owner string, name string, content string)
 
 async function createAsset(assetID , size , owner , name , content ) {
    
-        if (!gateway) {
-            throw new Error('Gateway not initialized');
-        }
-
-    const network = gateway.getNetwork(channelName);
-    const contract = network.getContract(chaincodeName);
     console.log('\n--> Submit Transaction: CreateAsset, creates new asset with metadata arguments');
 
     await contract.submitTransaction(
@@ -184,7 +182,7 @@ async function createAsset(assetID , size , owner , name , content ) {
     console.log('*** Transaction committed successfully');
 
 }
-module.exports = { createAsset };
+module.exports = { create };
 
 
 function envOrDefault(key, defaultValue) {

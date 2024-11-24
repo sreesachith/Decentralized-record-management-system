@@ -1,10 +1,7 @@
 const ipfs = require('../config/ipfs'); 
 const File = require('../models/File');
 const { Readable } = require('stream');
-const { createAsset } = require('../server'); // Correct path to server.js
-const server = require('../server');
 
-console.log('createAsset:', createAsset);
 exports.uploadFile = async (req, res) => {
     try {
         const file = req.file; // Get the uploaded file
@@ -80,3 +77,71 @@ exports.getAllFiles = async (req, res) => {
       res.status(500).json({ message: 'Server error fetching files' });
     }
 };
+
+
+const grpc = require('@grpc/grpc-js');
+const { connect, signers } = require('@hyperledger/fabric-gateway');
+const crypto = require('crypto');
+const fs = require('fs').promises;
+const path = require('path');
+const { TextDecoder } = require('util');
+
+const channelName = 'mychannel'; // Replace with your channel name
+const chaincodeName = 'basic'; // Replace with your chaincode name
+const mspId = 'rrMSP'; // Replace with your organization's MSP ID
+
+// Paths to crypto materials
+const cryptoPath = path.resolve(__dirname, 'path-to-crypto-materials'); // Update with your crypto path
+const keyDirectoryPath = path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'keystore');
+const certDirectoryPath = path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'signcerts');
+const tlsCertPath = path.resolve(cryptoPath, 'peers', 'peer0.rr.isfcr.com', 'tls', 'ca.crt');
+const peerEndpoint = 'localhost:7051'; // Replace with your peer endpoint
+const peerHostAlias = 'peer0.rr.isfcr.com'; // Replace with your peer host alias
+
+const utf8Decoder = new TextDecoder();
+
+async function createAsset(assetID, size, owner, name, content) {
+    const client = await newGrpcConnection();
+    const gateway = connect({
+        client,
+        identity: await newIdentity(),
+        signer: await newSigner(),
+    });
+
+    try {
+        const network = gateway.getNetwork(channelName);
+        const contract = network.getContract(chaincodeName);
+
+        console.log(`\n--> Submit Transaction: CreateAsset`);
+        await contract.submitTransaction('CreateAsset', assetID, size, owner, name, content);
+        console.log(`*** Asset ${assetID} created successfully`);
+    } catch (error) {
+        console.error('Error creating asset:', error);
+    } finally {
+        gateway.close();
+    }
+}
+
+async function newGrpcConnection() {
+    const tlsRootCert = await fs.readFile(tlsCertPath);
+    const tlsCredentials = grpc.credentials.createSsl(tlsRootCert);
+    return new grpc.Client(peerEndpoint, tlsCredentials, {
+        'grpc.ssl_target_name_override': peerHostAlias,
+    });
+}
+
+async function newIdentity() {
+    const certPath = (await fs.readdir(certDirectoryPath)).find(file => file.endsWith('.pem'));
+    const credentials = await fs.readFile(path.join(certDirectoryPath, certPath));
+    return { mspId, credentials };
+}
+
+async function newSigner() {
+    const keyPath = (await fs.readdir(keyDirectoryPath)).find(file => file.endsWith('_sk'));
+    const privateKeyPem = await fs.readFile(path.join(keyDirectoryPath, keyPath));
+    const privateKey = crypto.createPrivateKey(privateKeyPem);
+    return signers.newPrivateKeySigner(privateKey);
+}
+
+
+
