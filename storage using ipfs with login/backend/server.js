@@ -4,10 +4,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes'); // Import the auth routes
 const fileRoutes = require('./routes/fileRoutes'); // Import the file routes
+const User = require('./models/User'); // Ensure the path is correct
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+let gateway;
 //HLF
 const grpc = require('@grpc/grpc-js');
 const { connect, signers } = require('@hyperledger/fabric-gateway');
@@ -21,7 +22,7 @@ const chaincodeName = envOrDefault('CHAINCODE_NAME', 'basic');
 const mspId = envOrDefault('MSP_ID', 'rrMSP');
 
 // Path to crypto materials.
-const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'Chain-Prototype', 'organizations', 'peerOrganizations', 'rr.isfcr.com'));
+const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'HLF2.5-LOCAL', 'organizations', 'peerOrganizations', 'rr.isfcr.com'));
 
 // Path to user private key directory.
 const keyDirectoryPath = envOrDefault('KEY_DIRECTORY_PATH', path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'keystore'));
@@ -64,15 +65,21 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
+async function seedAdmin() {
+  const adminExists = await User.findOne({ email: 'admin@gmail.com' });
+  if (!adminExists) {
+    const admin = new User({
+      username: 'Admin',
+      email: 'admin@gmail.com',
+      password: 'admin', // Do not store plaintext passwords in production
+      role: 'admin',
+    });
+    await admin.save();
+    console.log('Admin user created.');
+  }
+}
 
-/* 
- * Copyright IBM Corp. All Rights Reserved.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
-
+seedAdmin();
 async function main() {
     await displayInputParameters();
 
@@ -94,7 +101,7 @@ async function main() {
         const network = gateway.getNetwork(channelName);
         const contract = network.getContract(chaincodeName);
 
-        await initLedger(contract);
+        //await initLedger(contract);
         console.log('*** Ledger initialization successful.');
     } catch (error) {
         // Handle errors without closing the gateway
@@ -154,7 +161,12 @@ async function initLedger(contract) {
 
 
 //CreateAsset(ctx contractapi.TransactionContextInterface, assetID string, size int, owner string, name string, content string)
+
 async function createAsset(assetID , size , owner , name , content ) {
+   
+        if (!gateway) {
+            throw new Error('Gateway not initialized');
+        }
 
     const network = gateway.getNetwork(channelName);
     const contract = network.getContract(chaincodeName);
@@ -168,13 +180,11 @@ async function createAsset(assetID , size , owner , name , content ) {
         name,
         content
     );
-
+    
     console.log('*** Transaction committed successfully');
+
 }
-
 module.exports = { createAsset };
-
-
 
 
 function envOrDefault(key, defaultValue) {

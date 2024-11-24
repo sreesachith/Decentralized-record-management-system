@@ -1,8 +1,10 @@
 const ipfs = require('../config/ipfs'); 
 const File = require('../models/File');
 const { Readable } = require('stream');
-const { createAsset } = require('../server.js');
+const { createAsset } = require('../server'); // Correct path to server.js
+const server = require('../server');
 
+console.log('createAsset:', createAsset);
 exports.uploadFile = async (req, res) => {
     try {
         const file = req.file; // Get the uploaded file
@@ -26,7 +28,7 @@ exports.uploadFile = async (req, res) => {
         });
 
         await newFile.save(); // Save the file document to MongoDB
-
+        
         const assetID = `asset-${Date.now()}`; // Generate a unique asset ID
         const size = file.size.toString(); // Use file size as size
         const owner = username; // Use the username as the owner
@@ -43,7 +45,6 @@ exports.uploadFile = async (req, res) => {
             size: file.size,
             username: username // Return the username in the response
         });
-
     } catch (error) {
         console.error('File upload error:', error);
         res.status(500).json({ error: 'File upload failed', details: error.message });
@@ -68,5 +69,14 @@ exports.getFilesByUsername = async (req, res) => {
         res.json({ success: true, files });
     } catch (err) {
         res.status(500).json({ error: 'Error fetching files' });
+    }
+};
+exports.getAllFiles = async (req, res) => {
+    try {
+      const files = await File.find(); // Fetch all files
+      res.status(200).json(files);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+      res.status(500).json({ message: 'Server error fetching files' });
     }
 };

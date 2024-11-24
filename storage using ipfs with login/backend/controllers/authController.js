@@ -1,4 +1,3 @@
-
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
@@ -6,22 +5,18 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user by email
     const user = await User.findOne({ email });
+    const username = user.username;
 
-    if (!user) {
+    if (!user || user.password !== password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Compare the password directly
-    if (user.password !== password) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Create JWT token
-    const token = jwt.sign({ id: user._id }, 'your_jwt_secret', { expiresIn: '1h' });
-
-    return res.json({ token });
+    const token = jwt.sign({ id: user._id, role: user.role }, 'your_jwt_secret', {
+      expiresIn: '1h',
+    });
+    
+    return res.json({ token, role: user.role, username: username });
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ message: 'Server error' });
