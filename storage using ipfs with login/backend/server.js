@@ -21,7 +21,7 @@ const chaincodeName = envOrDefault('CHAINCODE_NAME', 'basic');
 const mspId = envOrDefault('MSP_ID', 'rrMSP');
 
 // Path to crypto materials.
-const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'Chain-Prototype', 'organizations', 'peerOrganizations', 'rr.isfcr.com'));
+const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve(__dirname, '..', '..', '..', 'HLF2.5-LOCAL', 'organizations', 'peerOrganizations', 'rr.isfcr.com'));
 
 // Path to user private key directory.
 const keyDirectoryPath = envOrDefault('KEY_DIRECTORY_PATH', path.resolve(cryptoPath, 'users', 'User1@rr.isfcr.com', 'msp', 'keystore'));
@@ -102,7 +102,7 @@ async function main() {
         const network = gateway.getNetwork(channelName);
         contract = network.getContract(chaincodeName);
 
-        //await initLedger(contract);
+        await initLedger(contract);
         //createAsset("abcd" , "5", "abc", "abc" , "abc");
         console.log('*** Ledger initialization successful.');
     } catch (error) {
